@@ -1,11 +1,18 @@
 {
     "name": "com.unityessentials.packagemanifesteditor",
     "version": "1.0.0",
-    "organizationName": "unityessentials",
-    "displayName": "packagemanifesteditor",
+    "displayName": "UnityEssentials PackageManifestEditor",
     "description": "This is a part of the UnityEssentials Ecosystem",
     "unity": "2022.1",
     "unityRelease": "0",
-    "dependencies": [],
-    "visibilityInEditor": 0
+    "documentationUrl": "",
+    "changelogUrl": "",
+    "licensesUrl": "",
+    "dependencies": { "com.unityessentials.core": "1.0.0" },
+    "keywords": [],
+    "author": {
+        "name": "Unity Essentials",
+        "email": "",
+        "url": ""
+    }
 }
