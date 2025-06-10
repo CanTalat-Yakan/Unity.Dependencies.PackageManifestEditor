@@ -404,8 +404,15 @@ namespace UnityEssentials
             public List<Sample> samples = new();
             public bool hideInEditor = true;
 
-            public string ToJson() =>
-                JsonConvert.SerializeObject(this, Formatting.Indented);
+            public string ToJson()
+            {
+                var release = unityRelease;
+                if (string.IsNullOrEmpty(release))
+                    unityRelease = "";
+                var data = JsonConvert.SerializeObject(this, Formatting.Indented);
+                unityRelease = release;
+                return data;
+            }
 
             [Serializable]
             public class Author
