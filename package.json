@@ -1,18 +1,23 @@
 {
-    "name": "com.unityessentials.packagemanifesteditor",
-    "version": "1.0.0",
-    "displayName": "UnityEssentials PackageManifestEditor",
-    "description": "This is a part of the UnityEssentials Ecosystem",
-    "unity": "2022.1",
-    "unityRelease": "0",
-    "documentationUrl": "",
-    "changelogUrl": "",
-    "licensesUrl": "",
-    "dependencies": { "com.unityessentials.core": "1.0.0" },
-    "keywords": [],
-    "author": {
-        "name": "Unity Essentials",
-        "email": "",
-        "url": ""
-    }
+  "name": "com.unityessentials.packagemanifesteditor",
+  "version": "1.0.0",
+  "displayName": "UnityEssentials PackageManifestEditor",
+  "description": "This is a part of the UnityEssentials Ecosystem",
+  "unity": "2022.1",
+  "unityRelease": null,
+  "dependencies": {
+    "com.unityessentials.core": "1.0.0",
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Can Talat Yakan",
+    "email": "",
+    "url": ""
+  },
+  "documentationUrl": "",
+  "changelogUrl": "",
+  "licensesUrl": "",
+  "samples": [],
+  "hideInEditor": true
 }

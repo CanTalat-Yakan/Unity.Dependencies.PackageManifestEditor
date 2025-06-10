@@ -4,6 +4,7 @@ using System.IO;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
+using Newtonsoft.Json;
 
 namespace UnityEssentials
 {
@@ -33,7 +34,13 @@ namespace UnityEssentials
         private PackageJson data;
         private Vector2 scroll;
         private ReorderableList dependenciesList;
+        private List<Dependency> dependencies = new();
+        private ReorderableList keywordsList;
+        private ReorderableList samplesList;
         private bool hasMinimalUnityVersion = false;
+        private bool authorFoldout = true;
+        private bool linksFoldout = true;
+        private bool advancedFoldout = false;
         private bool initialized = false;
 
         public static void Show(string filePath)
@@ -51,27 +58,39 @@ namespace UnityEssentials
             if (!string.IsNullOrEmpty(jsonPath) && File.Exists(jsonPath))
             {
                 string json = File.ReadAllText(jsonPath);
-                data = JsonUtility.FromJson<PackageJson>(json) ?? new PackageJson();
-                data.dependencies ??= new List<Dependency>();
+                data = JsonConvert.DeserializeObject<PackageJson>(json) ?? new PackageJson();
+
+                data.dependencies ??= new();
                 InitializeDependenciesList();
+
+                data.keywords ??= new();
+                InitializeKeywordsList();
+
+                data.samples ??= new();
+                InitializeSamplesList();
 
                 hasMinimalUnityVersion = !string.IsNullOrEmpty(data.unityRelease);
             }
-            else
-            {
-                data = new PackageJson();
-            }
+            else data = new();
+
             initialized = true;
         }
 
         private void InitializeDependenciesList()
         {
-            dependenciesList = new ReorderableList(data.dependencies, typeof(Dependency), true, true, true, true)
+            if (!initialized || data == null || data.dependencies == null)
+            {
+                dependencies.Clear();
+                foreach (var kvp in data.dependencies)
+                    dependencies.Add(new Dependency { name = kvp.Key, version = kvp.Value });
+            }
+
+            dependenciesList = new ReorderableList(dependencies, typeof(Dependency), true, true, true, true)
             {
                 drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Dependencies"),
                 drawElementCallback = (rect, index, isActive, isFocused) =>
                 {
-                    var element = data.dependencies[index];
+                    var element = dependencies[index];
                     rect.y += 2;
                     rect.height = EditorGUIUtility.singleLineHeight;
 
@@ -98,16 +117,90 @@ namespace UnityEssentials
 
             dependenciesList.onAddCallback = list =>
             {
-                data.dependencies.Add(new Dependency
+                dependencies.Add(new Dependency
                 {
-                    name = "com.unity.new-package",
+                    name = "com.example.new-package",
                     version = "1.0.0"
+                });
+            };
+        }
+
+        private void InitializeKeywordsList()
+        {
+            keywordsList = new ReorderableList(data.keywords, typeof(string), true, true, true, true)
+            {
+                drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Keywords"),
+                drawElementCallback = (rect, index, isActive, isFocused) =>
+                {
+                    rect.y += 2;
+                    rect.height = EditorGUIUtility.singleLineHeight;
+                    data.keywords[index] = EditorGUI.TextField(rect, data.keywords[index]);
+                },
+                elementHeight = EditorGUIUtility.singleLineHeight + 4
+            };
+
+            keywordsList.onAddCallback = list =>
+            {
+                data.keywords.Add("");
+            };
+        }
+
+        private void InitializeSamplesList()
+        {
+            samplesList = new ReorderableList(data.samples, typeof(Sample), true, true, true, true)
+            {
+                drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Samples"),
+                drawElementCallback = (rect, index, isActive, isFocused) =>
+                {
+                    var element = data.samples[index];
+                    float y = rect.y + 2;
+                    float lineHeight = EditorGUIUtility.singleLineHeight;
+                    float spacing = 2;
+
+                    // Display Name
+                    element.displayName = EditorGUI.TextField(
+                        new Rect(rect.x, y, rect.width, lineHeight),
+                        "Display Name", element.displayName);
+                    y += lineHeight + spacing;
+
+                    // Description
+                    element.description = EditorGUI.TextField(
+                        new Rect(rect.x, y, rect.width, lineHeight),
+                        "Description", element.description);
+                    y += lineHeight + spacing;
+
+                    // Path
+                    element.path = EditorGUI.TextField(
+                        new Rect(rect.x, y, rect.width, lineHeight),
+                        "Path", element.path);
+
+                    // Save back
+                    data.samples[index] = element;
+                },
+                elementHeightCallback = (index) =>
+                {
+                    // 3 lines + spacing
+                    return (EditorGUIUtility.singleLineHeight + 2) * 3;
+                }
+            };
+
+            samplesList.onAddCallback = list =>
+            {
+                data.samples.Add(new Sample
+                {
+                    displayName = "",
+                    description = "",
+                    path = "Samples~/"
                 });
             };
         }
 
         private void Save()
         {
+            data.dependencies.Clear();
+            foreach (var dependency in dependencies)
+                data.dependencies[dependency.name] = dependency.version;
+
             File.WriteAllText(jsonPath, data.ToJson());
             AssetDatabase.Refresh();
         }
@@ -127,72 +220,127 @@ namespace UnityEssentials
                 return;
             }
 
-            scroll = EditorGUILayout.BeginScrollView(scroll, GUIStyle.none, GUI.skin.verticalScrollbar);
-            EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
-
-            EditorGUILayout.LabelField("Information", EditorStyles.boldLabel);
-
-            ParsePackageName(data.name, out string organizationName, out string packageName);
-
-            // Name: sanitized, used for the package name
-            packageName = EditorGUILayout.TextField("Name", packageName);
-            organizationName = EditorGUILayout.TextField("Organization name", organizationName);
-
-            // DisplayName: plain, user-editable, not sanitized
-            data.displayName = EditorGUILayout.TextField("Display Name", data.displayName);
-
-            packageName = SanitizeNamePart(packageName);
-            organizationName = SanitizeNamePart(organizationName);
-
-            data.name = ComposePackageName(organizationName, packageName);
-
-            data.version = EditorGUILayout.TextField("Version", data.version);
-
-            hasMinimalUnityVersion = EditorGUILayout.Toggle("Minimal Unity Version", hasMinimalUnityVersion);
-
-            // Unity Version Section
-            var unityVersionParts = (data.unity ?? "2020.1").Split('.');
-            int unityMajor = 0, unityMinor = 0;
-            int.TryParse(unityVersionParts[0], out unityMajor);
-            if (unityVersionParts.Length > 1)
-                int.TryParse(unityVersionParts[1], out unityMinor);
-
-            unityMajor = EditorGUILayout.IntField("Major", unityMajor);
-            unityMinor = EditorGUILayout.IntField("Minor", unityMinor);
-            data.unity = $"{unityMajor}.{unityMinor}";
-
-            if (hasMinimalUnityVersion)
+            EditorGUILayout.BeginVertical("box");
             {
-                if (!hasMinimalUnityVersion)
-                    data.unityRelease = ""; // Create empty field if just enabled
+                scroll = EditorGUILayout.BeginScrollView(scroll, GUIStyle.none, GUI.skin.verticalScrollbar);
+                EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
+                {
+                    EditorGUILayout.LabelField("Information", EditorStyles.boldLabel);
+                    EditorGUI.indentLevel++;
+                    {
+                        ParsePackageName(data.name, out string organizationName, out string packageName);
 
-                EditorGUI.BeginChangeCheck();
-                data.unityRelease = EditorGUILayout.TextField("Release", data.unityRelease);
-                if (EditorGUI.EndChangeCheck())
-                    if (string.IsNullOrWhiteSpace(data.unityRelease))
-                        data.unityRelease = null; // Remove if empty
+                        // Name: sanitized, used for the package name
+                        packageName = EditorGUILayout.TextField("Name", packageName);
+                        organizationName = EditorGUILayout.TextField("Organization name", organizationName);
+
+                        // DisplayName: plain, user-editable, not sanitized
+                        data.displayName = EditorGUILayout.TextField("Display Name", data.displayName);
+
+                        packageName = SanitizeNamePart(packageName);
+                        organizationName = SanitizeNamePart(organizationName);
+
+                        data.name = ComposePackageName(organizationName, packageName);
+
+                        data.version = EditorGUILayout.TextField("Version", data.version);
+
+                        hasMinimalUnityVersion = EditorGUILayout.Toggle("Minimal Unity Version", hasMinimalUnityVersion);
+
+                        // Unity Version Section
+                        var unityVersionParts = (data.unity ?? "2020.1").Split('.');
+                        int unityMajor = 0, unityMinor = 0;
+                        int.TryParse(unityVersionParts[0], out unityMajor);
+                        if (unityVersionParts.Length > 1)
+                            int.TryParse(unityVersionParts[1], out unityMinor);
+
+                        unityMajor = EditorGUILayout.IntField("Major", unityMajor);
+                        unityMinor = EditorGUILayout.IntField("Minor", unityMinor);
+                        data.unity = $"{unityMajor}.{unityMinor}";
+
+                        if (hasMinimalUnityVersion)
+                        {
+                            if (!hasMinimalUnityVersion)
+                                data.unityRelease = ""; // Create empty field if just enabled
+
+                            EditorGUI.BeginChangeCheck();
+                            data.unityRelease = EditorGUILayout.TextField("Release", data.unityRelease);
+                            if (EditorGUI.EndChangeCheck())
+                                if (string.IsNullOrWhiteSpace(data.unityRelease))
+                                    data.unityRelease = null; // Remove if empty
+                        }
+                        else data.unityRelease = null; // Remove from JSON if unchecked
+                    }
+                    EditorGUI.indentLevel--;
+
+                    EditorGUILayout.Space(10);
+
+                    EditorGUILayout.LabelField("Description");
+                    GUIStyle wordWrapStyle = new GUIStyle(EditorStyles.textArea) { wordWrap = true };
+                    data.description = EditorGUILayout.TextArea(data.description, wordWrapStyle, GUILayout.MinHeight(80));
+
+                    EditorGUILayout.Space(10);
+
+                    if (dependenciesList == null)
+                        InitializeDependenciesList();
+                    dependenciesList.DoLayoutList();
+
+                    EditorGUILayout.Space();
+
+                    if (keywordsList == null)
+                        InitializeKeywordsList();
+                    keywordsList.DoLayoutList();
+
+                    EditorGUILayout.Space();
+
+                    if (samplesList == null)
+                        InitializeSamplesList();
+                    samplesList.DoLayoutList();
+
+                    EditorGUILayout.Space(10);
+
+                    // Author fields
+                    authorFoldout = EditorGUILayout.Foldout(authorFoldout, "Author", true);
+                    if (authorFoldout)
+                    {
+                        EditorGUI.indentLevel++;
+                        data.author.name = EditorGUILayout.TextField("Name", data.author.name);
+                        data.author.email = EditorGUILayout.TextField("Email", data.author.email);
+                        data.author.url = EditorGUILayout.TextField("URL", data.author.url);
+                        EditorGUI.indentLevel--;
+                    }
+                    EditorGUILayout.Space(10);
+
+                    // Links foldout
+                    linksFoldout = EditorGUILayout.Foldout(linksFoldout, "Links", true);
+                    if (linksFoldout)
+                    {
+                        EditorGUI.indentLevel++;
+                        data.documentationUrl = EditorGUILayout.TextField("Documentation URL", data.documentationUrl);
+                        data.changelogUrl = EditorGUILayout.TextField("Changelog URL", data.changelogUrl);
+                        data.licensesUrl = EditorGUILayout.TextField("Licenses URL", data.licensesUrl);
+                        EditorGUI.indentLevel--;
+                    }
+
+                    EditorGUILayout.Space(10);
+
+                    advancedFoldout = EditorGUILayout.Foldout(advancedFoldout, "Advanced", true);
+                    if (advancedFoldout)
+                    {
+                        EditorGUI.indentLevel++;
+                        EditorGUILayout.HelpBox(
+                            "If unchecked, the assets in this package will always " +
+                            "be visible in the Project window and Object Picker." +
+                            "\n(Default: hidden)", MessageType.Info);
+                        data.hideInEditor = EditorGUILayout.Toggle(new GUIContent("Hide In Editor"),data.hideInEditor);
+                        EditorGUI.indentLevel--;
+                    }
+                }
+                EditorGUILayout.EndVertical();
+                EditorGUILayout.EndScrollView();
+
             }
-            else data.unityRelease = null; // Remove from JSON if unchecked
-
-            // Description with word wrapping
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Description");
-            GUIStyle wordWrapStyle = new GUIStyle(EditorStyles.textArea) { wordWrap = true };
-            data.description = EditorGUILayout.TextArea(data.description, wordWrapStyle, GUILayout.MinHeight(80));
-
-            EditorGUILayout.Space(10);
-
-            if (dependenciesList == null) InitializeDependenciesList();
-            dependenciesList.DoLayoutList();
-
-            EditorGUILayout.Space(10);
-
-            data.visibilityInEditor = (Visibility)EditorGUILayout.EnumPopup("Visibility in Editor", data.visibilityInEditor);
-
             EditorGUILayout.EndVertical();
-            EditorGUILayout.EndScrollView();
 
-            EditorGUILayout.Space(10);
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Revert", GUILayout.Width(100)))
@@ -246,22 +394,25 @@ namespace UnityEssentials
             public string displayName;
             public string description;
             public string unity;
-            public string unityRelease; // Now string, can be null
-            public List<Dependency> dependencies = new List<Dependency>();
-            public Visibility visibilityInEditor = Visibility.Default;
+            public string unityRelease;
+            public Dictionary<string, string> dependencies = new();
+            public List<string> keywords = new();
+            public Author author = new Author();
+            public string documentationUrl;
+            public string changelogUrl;
+            public string licensesUrl;
+            public List<Sample> samples = new();
+            public bool hideInEditor = true;
 
-            public string ToJson()
+            public string ToJson() =>
+                JsonConvert.SerializeObject(this, Formatting.Indented);
+
+            [Serializable]
+            public class Author
             {
-                // Temporarily remove unityRelease if null or empty
-                string originalUnityRelease = unityRelease;
-                if (string.IsNullOrWhiteSpace(unityRelease))
-                    unityRelease = null;
-
-                string json = JsonUtility.ToJson(this, true);
-
-                // Restore the original value
-                unityRelease = originalUnityRelease;
-                return json;
+                public string name;
+                public string email;
+                public string url;
             }
         }
 
@@ -272,11 +423,12 @@ namespace UnityEssentials
             public string version;
         }
 
-        private enum Visibility
+        [Serializable]
+        private class Sample
         {
-            Default,
-            Hidden,
-            Visible
+            public string displayName;
+            public string description;
+            public string path;
         }
     }
 }
