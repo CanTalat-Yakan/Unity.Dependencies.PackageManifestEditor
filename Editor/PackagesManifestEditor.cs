@@ -258,17 +258,7 @@ namespace UnityEssentials
                         data.unity = $"{unityMajor}.{unityMinor}";
 
                         if (hasMinimalUnityVersion)
-                        {
-                            if (!hasMinimalUnityVersion)
-                                data.unityRelease = ""; // Create empty field if just enabled
-
-                            EditorGUI.BeginChangeCheck();
                             data.unityRelease = EditorGUILayout.TextField("Release", data.unityRelease);
-                            if (EditorGUI.EndChangeCheck())
-                                if (string.IsNullOrWhiteSpace(data.unityRelease))
-                                    data.unityRelease = null; // Remove if empty
-                        }
-                        else data.unityRelease = null; // Remove from JSON if unchecked
                     }
                     EditorGUI.indentLevel--;
 
@@ -331,7 +321,7 @@ namespace UnityEssentials
                             "If unchecked, the assets in this package will always " +
                             "be visible in the Project window and Object Picker." +
                             "\n(Default: hidden)", MessageType.Info);
-                        data.hideInEditor = EditorGUILayout.Toggle(new GUIContent("Hide In Editor"),data.hideInEditor);
+                        data.hideInEditor = EditorGUILayout.Toggle(new GUIContent("Hide In Editor"), data.hideInEditor);
                         EditorGUI.indentLevel--;
                     }
                 }
@@ -406,11 +396,7 @@ namespace UnityEssentials
 
             public string ToJson()
             {
-                var release = unityRelease;
-                if (string.IsNullOrEmpty(release))
-                    unityRelease = "";
                 var data = JsonConvert.SerializeObject(this, Formatting.Indented);
-                unityRelease = release;
                 return data;
             }
         }
