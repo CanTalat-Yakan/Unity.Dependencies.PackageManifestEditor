@@ -247,7 +247,7 @@ namespace UnityEssentials
                         hasMinimalUnityVersion = EditorGUILayout.Toggle("Minimal Unity Version", hasMinimalUnityVersion);
 
                         // Unity Version Section
-                        var unityVersionParts = (data.unity ?? "2020.1").Split('.');
+                        var unityVersionParts = (data.unity ?? "2022.1").Split('.');
                         int unityMajor = 0, unityMinor = 0;
                         int.TryParse(unityVersionParts[0], out unityMajor);
                         if (unityVersionParts.Length > 1)
@@ -387,7 +387,7 @@ namespace UnityEssentials
         }
 
         [Serializable]
-        private class PackageJson
+        public class PackageJson
         {
             public string name;
             public string version;
@@ -413,25 +413,25 @@ namespace UnityEssentials
                 unityRelease = release;
                 return data;
             }
-
-            [Serializable]
-            public class Author
-            {
-                public string name;
-                public string email;
-                public string url;
-            }
         }
 
         [Serializable]
-        private class Dependency
+        public class Author
+        {
+            public string name;
+            public string email;
+            public string url;
+        }
+
+        [Serializable]
+        public class Dependency
         {
             public string name;
             public string version;
         }
 
         [Serializable]
-        private class Sample
+        public class Sample
         {
             public string displayName;
             public string description;
