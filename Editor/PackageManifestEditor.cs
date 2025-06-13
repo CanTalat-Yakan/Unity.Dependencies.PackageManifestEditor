@@ -77,7 +77,7 @@ namespace UnityEssentials
 
         private void Body()
         {
-            EditorGUILayout.LabelField("Information", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Information");
 
             EditorGUI.indentLevel++;
             {
@@ -179,6 +179,8 @@ namespace UnityEssentials
         {
             EditorGUILayout.BeginHorizontal();
             {
+                GUILayout.FlexibleSpace();
+
                 if (GUILayout.Button("Revert", GUILayout.Width(100)))
                     Initialization();
                 if (GUILayout.Button("Apply", GUILayout.Width(100)))
