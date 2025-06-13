@@ -35,22 +35,25 @@ namespace UnityEssentials
         public Action Repaint;
         public Action Close;
 
-        private string jsonPath;
-        private PackageJson data;
-        private ReorderableList dependenciesList;
-        private List<Dependency> dependencies = new();
-        private ReorderableList keywordsList;
-        private ReorderableList samplesList;
-        private bool hasMinimalUnityVersion = false;
-        private bool authorFoldout = true;
-        private bool linksFoldout = true;
-        private bool advancedFoldout = false;
-        private bool initialized = false;
+        private string _jsonPath;
+        private PackageJson _jsonData;
+        private ReorderableList _dependenciesList;
+        private List<Dependency> _dependencies = new();
+        private ReorderableList _keywordsList;
+        private ReorderableList _samplesList;
+        private bool _hasMinimalUnityVersion = false;
+        private bool _authorFoldout = true;
+        private bool _linksFoldout = true;
+        private bool _advancedFoldout = false;
+        private bool _initialized = false;
+
+        public PackageManifestEditor(string jsonPath) =>
+            _jsonPath = jsonPath;
 
         public static void Show(string filePath)
         {
-            var editor = new PackageManifestEditor();
-            var window = new EditorWindowDrawer("Edit Package Manifest", new(700, 750), new(400, 500))
+            var editor = new PackageManifestEditor(filePath);
+            var window = new EditorWindowDrawer("Edit Package Manifest", new(700, 800), new(400, 500))
                 .SetPreProcess(editor.PreProcess)
                 .SetHeader(editor.Header)
                 .SetBody(editor.Body)
@@ -62,42 +65,43 @@ namespace UnityEssentials
 
         private void PreProcess()
         {
-            if (!string.IsNullOrEmpty(jsonPath) && File.Exists(jsonPath))
+            if (string.IsNullOrEmpty(_jsonPath) || !File.Exists(_jsonPath))
+                _jsonData = new();
+            else
             {
-                string json = File.ReadAllText(jsonPath);
-                data = JsonConvert.DeserializeObject<PackageJson>(json) ?? new PackageJson();
+                string json = File.ReadAllText(_jsonPath);
+                _jsonData = JsonConvert.DeserializeObject<PackageJson>(json) ?? new PackageJson();
 
-                data.dependencies ??= new();
+                _jsonData.dependencies ??= new();
                 InitializeDependenciesList();
 
-                data.keywords ??= new();
+                _jsonData.keywords ??= new();
                 InitializeKeywordsList();
 
-                data.samples ??= new();
+                _jsonData.samples ??= new();
                 InitializeSamplesList();
 
-                hasMinimalUnityVersion = !string.IsNullOrEmpty(data.unityRelease);
+                _hasMinimalUnityVersion = !string.IsNullOrEmpty(_jsonData.unityRelease);
             }
-            else data = new();
 
-            initialized = true;
+            _initialized = true;
         }
 
         private void InitializeDependenciesList()
         {
-            if (!initialized || data == null || data.dependencies == null)
+            if (!_initialized || _jsonData == null || _jsonData.dependencies == null)
             {
-                dependencies.Clear();
-                foreach (var kvp in data.dependencies)
-                    dependencies.Add(new Dependency { name = kvp.Key, version = kvp.Value });
+                _dependencies.Clear();
+                foreach (var kvp in _jsonData.dependencies)
+                    _dependencies.Add(new Dependency { name = kvp.Key, version = kvp.Value });
             }
 
-            dependenciesList = new ReorderableList(dependencies, typeof(Dependency), true, true, true, true)
+            _dependenciesList = new ReorderableList(_dependencies, typeof(Dependency), true, true, true, true)
             {
                 drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Dependencies"),
                 drawElementCallback = (rect, index, isActive, isFocused) =>
                 {
-                    var element = dependencies[index];
+                    var element = _dependencies[index];
                     rect.y += 2;
                     rect.height = EditorGUIUtility.singleLineHeight;
 
@@ -122,9 +126,9 @@ namespace UnityEssentials
                 elementHeight = EditorGUIUtility.singleLineHeight + 4
             };
 
-            dependenciesList.onAddCallback = list =>
+            _dependenciesList.onAddCallback = list =>
             {
-                dependencies.Add(new Dependency
+                _dependencies.Add(new Dependency
                 {
                     name = "com.example.new-package",
                     version = "1.0.0"
@@ -134,32 +138,32 @@ namespace UnityEssentials
 
         private void InitializeKeywordsList()
         {
-            keywordsList = new ReorderableList(data.keywords, typeof(string), true, true, true, true)
+            _keywordsList = new ReorderableList(_jsonData.keywords, typeof(string), true, true, true, true)
             {
                 drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Keywords"),
                 drawElementCallback = (rect, index, isActive, isFocused) =>
                 {
                     rect.y += 2;
                     rect.height = EditorGUIUtility.singleLineHeight;
-                    data.keywords[index] = EditorGUI.TextField(rect, data.keywords[index]);
+                    _jsonData.keywords[index] = EditorGUI.TextField(rect, _jsonData.keywords[index]);
                 },
                 elementHeight = EditorGUIUtility.singleLineHeight + 4
             };
 
-            keywordsList.onAddCallback = list =>
+            _keywordsList.onAddCallback = list =>
             {
-                data.keywords.Add("");
+                _jsonData.keywords.Add("");
             };
         }
 
         private void InitializeSamplesList()
         {
-            samplesList = new ReorderableList(data.samples, typeof(Sample), true, true, true, true)
+            _samplesList = new ReorderableList(_jsonData.samples, typeof(Sample), true, true, true, true)
             {
                 drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Samples"),
                 drawElementCallback = (rect, index, isActive, isFocused) =>
                 {
-                    var element = data.samples[index];
+                    var element = _jsonData.samples[index];
                     float y = rect.y + 2;
                     float lineHeight = EditorGUIUtility.singleLineHeight;
                     float spacing = 2;
@@ -182,7 +186,7 @@ namespace UnityEssentials
                         "Path", element.path);
 
                     // Save back
-                    data.samples[index] = element;
+                    _jsonData.samples[index] = element;
                 },
                 elementHeightCallback = (index) =>
                 {
@@ -191,9 +195,9 @@ namespace UnityEssentials
                 }
             };
 
-            samplesList.onAddCallback = list =>
+            _samplesList.onAddCallback = list =>
             {
-                data.samples.Add(new Sample
+                _jsonData.samples.Add(new Sample
                 {
                     displayName = "",
                     description = "",
@@ -204,23 +208,23 @@ namespace UnityEssentials
 
         private void Save()
         {
-            data.dependencies.Clear();
-            foreach (var dependency in dependencies)
-                data.dependencies[dependency.name] = dependency.version;
+            _jsonData.dependencies.Clear();
+            foreach (var dependency in _dependencies)
+                _jsonData.dependencies[dependency.name] = dependency.version;
 
-            File.WriteAllText(jsonPath, data.ToJson());
+            File.WriteAllText(_jsonPath, _jsonData.ToJson());
             AssetDatabase.Refresh();
         }
 
         private void Header()
         {
-            if (!initialized)
+            if (!_initialized)
             {
                 EditorGUILayout.LabelField("Loading...");
                 return;
             }
 
-            if (data == null)
+            if (_jsonData == null)
             {
                 EditorGUILayout.LabelField("Invalid or missing package.json.");
                 if (GUILayout.Button("Close"))
@@ -235,26 +239,26 @@ namespace UnityEssentials
 
             EditorGUI.indentLevel++;
             {
-                ParsePackageName(data.name, out string organizationName, out string packageName);
+                ParsePackageName(_jsonData.name, out string organizationName, out string packageName);
 
                 // Name: sanitized, used for the package name
                 packageName = EditorGUILayout.TextField("Name", packageName);
                 organizationName = EditorGUILayout.TextField("Organization name", organizationName);
 
                 // DisplayName: plain, user-editable, not sanitized
-                data.displayName = EditorGUILayout.TextField("Display Name", data.displayName);
+                _jsonData.displayName = EditorGUILayout.TextField("Display Name", _jsonData.displayName);
 
                 packageName = SanitizeNamePart(packageName);
                 organizationName = SanitizeNamePart(organizationName);
 
-                data.name = ComposePackageName(organizationName, packageName);
+                _jsonData.name = ComposePackageName(organizationName, packageName);
 
-                data.version = EditorGUILayout.TextField("Version", data.version);
+                _jsonData.version = EditorGUILayout.TextField("Version", _jsonData.version);
 
-                hasMinimalUnityVersion = EditorGUILayout.Toggle("Minimal Unity Version", hasMinimalUnityVersion);
+                _hasMinimalUnityVersion = EditorGUILayout.Toggle("Minimal Unity Version", _hasMinimalUnityVersion);
 
                 // Unity Version Section
-                var unityVersionParts = (data.unity ?? "2022.1").Split('.');
+                var unityVersionParts = (_jsonData.unity ?? "2022.1").Split('.');
                 int unityMajor = 0, unityMinor = 0;
                 int.TryParse(unityVersionParts[0], out unityMajor);
                 if (unityVersionParts.Length > 1)
@@ -262,10 +266,10 @@ namespace UnityEssentials
 
                 unityMajor = EditorGUILayout.IntField("Major", unityMajor);
                 unityMinor = EditorGUILayout.IntField("Minor", unityMinor);
-                data.unity = $"{unityMajor}.{unityMinor}";
+                _jsonData.unity = $"{unityMajor}.{unityMinor}";
 
-                if (hasMinimalUnityVersion)
-                    data.unityRelease = EditorGUILayout.TextField("Release", data.unityRelease);
+                if (_hasMinimalUnityVersion)
+                    _jsonData.unityRelease = EditorGUILayout.TextField("Release", _jsonData.unityRelease);
             }
             EditorGUI.indentLevel--;
 
@@ -273,62 +277,62 @@ namespace UnityEssentials
 
             EditorGUILayout.LabelField("Description");
             GUIStyle wordWrapStyle = new GUIStyle(EditorStyles.textArea) { wordWrap = true };
-            data.description = EditorGUILayout.TextArea(data.description, wordWrapStyle, GUILayout.MinHeight(80));
+            _jsonData.description = EditorGUILayout.TextArea(_jsonData.description, wordWrapStyle, GUILayout.MinHeight(80));
 
             EditorGUILayout.Space(10);
 
-            if (dependenciesList == null)
+            if (_dependenciesList == null)
                 InitializeDependenciesList();
-            dependenciesList.DoLayoutList();
+            _dependenciesList.DoLayoutList();
 
             EditorGUILayout.Space();
 
-            if (keywordsList == null)
+            if (_keywordsList == null)
                 InitializeKeywordsList();
-            keywordsList.DoLayoutList();
+            _keywordsList.DoLayoutList();
 
             EditorGUILayout.Space();
 
-            if (samplesList == null)
+            if (_samplesList == null)
                 InitializeSamplesList();
-            samplesList.DoLayoutList();
+            _samplesList.DoLayoutList();
 
             EditorGUILayout.Space(10);
 
             // Author fields
-            authorFoldout = EditorGUILayout.Foldout(authorFoldout, "Author", true);
-            if (authorFoldout)
+            _authorFoldout = EditorGUILayout.Foldout(_authorFoldout, "Author", true);
+            if (_authorFoldout)
             {
                 EditorGUI.indentLevel++;
-                data.author.name = EditorGUILayout.TextField("Name", data.author.name);
-                data.author.email = EditorGUILayout.TextField("Email", data.author.email);
-                data.author.url = EditorGUILayout.TextField("URL", data.author.url);
+                _jsonData.author.name = EditorGUILayout.TextField("Name", _jsonData.author.name);
+                _jsonData.author.email = EditorGUILayout.TextField("Email", _jsonData.author.email);
+                _jsonData.author.url = EditorGUILayout.TextField("URL", _jsonData.author.url);
                 EditorGUI.indentLevel--;
             }
             EditorGUILayout.Space(10);
 
             // Links foldout
-            linksFoldout = EditorGUILayout.Foldout(linksFoldout, "Links", true);
-            if (linksFoldout)
+            _linksFoldout = EditorGUILayout.Foldout(_linksFoldout, "Links", true);
+            if (_linksFoldout)
             {
                 EditorGUI.indentLevel++;
-                data.documentationUrl = EditorGUILayout.TextField("Documentation URL", data.documentationUrl);
-                data.changelogUrl = EditorGUILayout.TextField("Changelog URL", data.changelogUrl);
-                data.licensesUrl = EditorGUILayout.TextField("Licenses URL", data.licensesUrl);
+                _jsonData.documentationUrl = EditorGUILayout.TextField("Documentation URL", _jsonData.documentationUrl);
+                _jsonData.changelogUrl = EditorGUILayout.TextField("Changelog URL", _jsonData.changelogUrl);
+                _jsonData.licensesUrl = EditorGUILayout.TextField("Licenses URL", _jsonData.licensesUrl);
                 EditorGUI.indentLevel--;
             }
 
             EditorGUILayout.Space(10);
 
-            advancedFoldout = EditorGUILayout.Foldout(advancedFoldout, "Advanced", true);
-            if (advancedFoldout)
+            _advancedFoldout = EditorGUILayout.Foldout(_advancedFoldout, "Advanced", true);
+            if (_advancedFoldout)
             {
                 EditorGUI.indentLevel++;
                 EditorGUILayout.HelpBox(
                     "If unchecked, the assets in this package will always " +
                     "be visible in the Project window and Object Picker." +
                     "\n(Default: hidden)", MessageType.Info);
-                data.hideInEditor = EditorGUILayout.Toggle(new GUIContent("Hide In Editor"), data.hideInEditor);
+                _jsonData.hideInEditor = EditorGUILayout.Toggle(new GUIContent("Hide In Editor"), _jsonData.hideInEditor);
                 EditorGUI.indentLevel--;
             }
         }
