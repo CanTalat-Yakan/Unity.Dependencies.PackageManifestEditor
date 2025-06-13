@@ -1,7 +1,9 @@
 {
     "name": "UnityEssentials.PackageManifest.Editor",
     "rootNamespace": "UnityEssentials",
-    "references": [],
+    "references": [
+        "GUID:71b3a2b9f99395340b8b9366efa20e3d"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

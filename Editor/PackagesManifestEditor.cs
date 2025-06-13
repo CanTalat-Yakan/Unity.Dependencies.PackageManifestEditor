@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.IO;
 using UnityEditor;
 using UnityEditorInternal;
@@ -28,11 +29,14 @@ namespace UnityEssentials
             AssetDatabase.GetAssetPath(Selection.activeObject);
     }
 
-    public class PackageManifestEditor : EditorWindow
+    public class PackageManifestEditor
     {
+        public EditorWindowDrawer window;
+        public Action Repaint;
+        public Action Close;
+
         private string jsonPath;
         private PackageJson data;
-        private Vector2 scroll;
         private ReorderableList dependenciesList;
         private List<Dependency> dependencies = new();
         private ReorderableList keywordsList;
@@ -45,15 +49,18 @@ namespace UnityEssentials
 
         public static void Show(string filePath)
         {
-            var window = CreateInstance<PackageManifestEditor>();
-            window.titleContent = new GUIContent("Edit Package Manifest");
-            window.jsonPath = filePath;
-            window.minSize = new Vector2(400, 500); // Minimum reasonable size
-            window.Load();
-            window.ShowUtility();
+            var editor = new PackageManifestEditor();
+            var window = new EditorWindowDrawer("Edit Package Manifest", new(700, 750), new(400, 500))
+                .SetPreProcess(editor.PreProcess)
+                .SetHeader(editor.Header)
+                .SetBody(editor.Body)
+                .SetFooter(editor.Footer)
+                .GetRepaintEvent(out editor.Repaint)
+                .GetCloseEvent(out editor.Close)
+                .ShowUtility();
         }
 
-        private void Load()
+        private void PreProcess()
         {
             if (!string.IsNullOrEmpty(jsonPath) && File.Exists(jsonPath))
             {
@@ -205,7 +212,7 @@ namespace UnityEssentials
             AssetDatabase.Refresh();
         }
 
-        private void OnGUI()
+        private void Header()
         {
             if (!initialized)
             {
@@ -216,126 +223,123 @@ namespace UnityEssentials
             if (data == null)
             {
                 EditorGUILayout.LabelField("Invalid or missing package.json.");
-                if (GUILayout.Button("Close")) Close();
+                if (GUILayout.Button("Close"))
+                    Close();
                 return;
             }
+        }
 
-            EditorGUILayout.BeginVertical("box");
+        private void Body()
+        {
+            EditorGUILayout.LabelField("Information", EditorStyles.boldLabel);
+
+            EditorGUI.indentLevel++;
             {
-                scroll = EditorGUILayout.BeginScrollView(scroll, GUIStyle.none, GUI.skin.verticalScrollbar);
-                EditorGUILayout.BeginVertical(GUILayout.ExpandWidth(true));
-                {
-                    EditorGUILayout.LabelField("Information", EditorStyles.boldLabel);
-                    EditorGUI.indentLevel++;
-                    {
-                        ParsePackageName(data.name, out string organizationName, out string packageName);
+                ParsePackageName(data.name, out string organizationName, out string packageName);
 
-                        // Name: sanitized, used for the package name
-                        packageName = EditorGUILayout.TextField("Name", packageName);
-                        organizationName = EditorGUILayout.TextField("Organization name", organizationName);
+                // Name: sanitized, used for the package name
+                packageName = EditorGUILayout.TextField("Name", packageName);
+                organizationName = EditorGUILayout.TextField("Organization name", organizationName);
 
-                        // DisplayName: plain, user-editable, not sanitized
-                        data.displayName = EditorGUILayout.TextField("Display Name", data.displayName);
+                // DisplayName: plain, user-editable, not sanitized
+                data.displayName = EditorGUILayout.TextField("Display Name", data.displayName);
 
-                        packageName = SanitizeNamePart(packageName);
-                        organizationName = SanitizeNamePart(organizationName);
+                packageName = SanitizeNamePart(packageName);
+                organizationName = SanitizeNamePart(organizationName);
 
-                        data.name = ComposePackageName(organizationName, packageName);
+                data.name = ComposePackageName(organizationName, packageName);
 
-                        data.version = EditorGUILayout.TextField("Version", data.version);
+                data.version = EditorGUILayout.TextField("Version", data.version);
 
-                        hasMinimalUnityVersion = EditorGUILayout.Toggle("Minimal Unity Version", hasMinimalUnityVersion);
+                hasMinimalUnityVersion = EditorGUILayout.Toggle("Minimal Unity Version", hasMinimalUnityVersion);
 
-                        // Unity Version Section
-                        var unityVersionParts = (data.unity ?? "2022.1").Split('.');
-                        int unityMajor = 0, unityMinor = 0;
-                        int.TryParse(unityVersionParts[0], out unityMajor);
-                        if (unityVersionParts.Length > 1)
-                            int.TryParse(unityVersionParts[1], out unityMinor);
+                // Unity Version Section
+                var unityVersionParts = (data.unity ?? "2022.1").Split('.');
+                int unityMajor = 0, unityMinor = 0;
+                int.TryParse(unityVersionParts[0], out unityMajor);
+                if (unityVersionParts.Length > 1)
+                    int.TryParse(unityVersionParts[1], out unityMinor);
 
-                        unityMajor = EditorGUILayout.IntField("Major", unityMajor);
-                        unityMinor = EditorGUILayout.IntField("Minor", unityMinor);
-                        data.unity = $"{unityMajor}.{unityMinor}";
+                unityMajor = EditorGUILayout.IntField("Major", unityMajor);
+                unityMinor = EditorGUILayout.IntField("Minor", unityMinor);
+                data.unity = $"{unityMajor}.{unityMinor}";
 
-                        if (hasMinimalUnityVersion)
-                            data.unityRelease = EditorGUILayout.TextField("Release", data.unityRelease);
-                    }
-                    EditorGUI.indentLevel--;
-
-                    EditorGUILayout.Space(10);
-
-                    EditorGUILayout.LabelField("Description");
-                    GUIStyle wordWrapStyle = new GUIStyle(EditorStyles.textArea) { wordWrap = true };
-                    data.description = EditorGUILayout.TextArea(data.description, wordWrapStyle, GUILayout.MinHeight(80));
-
-                    EditorGUILayout.Space(10);
-
-                    if (dependenciesList == null)
-                        InitializeDependenciesList();
-                    dependenciesList.DoLayoutList();
-
-                    EditorGUILayout.Space();
-
-                    if (keywordsList == null)
-                        InitializeKeywordsList();
-                    keywordsList.DoLayoutList();
-
-                    EditorGUILayout.Space();
-
-                    if (samplesList == null)
-                        InitializeSamplesList();
-                    samplesList.DoLayoutList();
-
-                    EditorGUILayout.Space(10);
-
-                    // Author fields
-                    authorFoldout = EditorGUILayout.Foldout(authorFoldout, "Author", true);
-                    if (authorFoldout)
-                    {
-                        EditorGUI.indentLevel++;
-                        data.author.name = EditorGUILayout.TextField("Name", data.author.name);
-                        data.author.email = EditorGUILayout.TextField("Email", data.author.email);
-                        data.author.url = EditorGUILayout.TextField("URL", data.author.url);
-                        EditorGUI.indentLevel--;
-                    }
-                    EditorGUILayout.Space(10);
-
-                    // Links foldout
-                    linksFoldout = EditorGUILayout.Foldout(linksFoldout, "Links", true);
-                    if (linksFoldout)
-                    {
-                        EditorGUI.indentLevel++;
-                        data.documentationUrl = EditorGUILayout.TextField("Documentation URL", data.documentationUrl);
-                        data.changelogUrl = EditorGUILayout.TextField("Changelog URL", data.changelogUrl);
-                        data.licensesUrl = EditorGUILayout.TextField("Licenses URL", data.licensesUrl);
-                        EditorGUI.indentLevel--;
-                    }
-
-                    EditorGUILayout.Space(10);
-
-                    advancedFoldout = EditorGUILayout.Foldout(advancedFoldout, "Advanced", true);
-                    if (advancedFoldout)
-                    {
-                        EditorGUI.indentLevel++;
-                        EditorGUILayout.HelpBox(
-                            "If unchecked, the assets in this package will always " +
-                            "be visible in the Project window and Object Picker." +
-                            "\n(Default: hidden)", MessageType.Info);
-                        data.hideInEditor = EditorGUILayout.Toggle(new GUIContent("Hide In Editor"), data.hideInEditor);
-                        EditorGUI.indentLevel--;
-                    }
-                }
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndScrollView();
-
+                if (hasMinimalUnityVersion)
+                    data.unityRelease = EditorGUILayout.TextField("Release", data.unityRelease);
             }
-            EditorGUILayout.EndVertical();
+            EditorGUI.indentLevel--;
 
+            EditorGUILayout.Space(10);
+
+            EditorGUILayout.LabelField("Description");
+            GUIStyle wordWrapStyle = new GUIStyle(EditorStyles.textArea) { wordWrap = true };
+            data.description = EditorGUILayout.TextArea(data.description, wordWrapStyle, GUILayout.MinHeight(80));
+
+            EditorGUILayout.Space(10);
+
+            if (dependenciesList == null)
+                InitializeDependenciesList();
+            dependenciesList.DoLayoutList();
+
+            EditorGUILayout.Space();
+
+            if (keywordsList == null)
+                InitializeKeywordsList();
+            keywordsList.DoLayoutList();
+
+            EditorGUILayout.Space();
+
+            if (samplesList == null)
+                InitializeSamplesList();
+            samplesList.DoLayoutList();
+
+            EditorGUILayout.Space(10);
+
+            // Author fields
+            authorFoldout = EditorGUILayout.Foldout(authorFoldout, "Author", true);
+            if (authorFoldout)
+            {
+                EditorGUI.indentLevel++;
+                data.author.name = EditorGUILayout.TextField("Name", data.author.name);
+                data.author.email = EditorGUILayout.TextField("Email", data.author.email);
+                data.author.url = EditorGUILayout.TextField("URL", data.author.url);
+                EditorGUI.indentLevel--;
+            }
+            EditorGUILayout.Space(10);
+
+            // Links foldout
+            linksFoldout = EditorGUILayout.Foldout(linksFoldout, "Links", true);
+            if (linksFoldout)
+            {
+                EditorGUI.indentLevel++;
+                data.documentationUrl = EditorGUILayout.TextField("Documentation URL", data.documentationUrl);
+                data.changelogUrl = EditorGUILayout.TextField("Changelog URL", data.changelogUrl);
+                data.licensesUrl = EditorGUILayout.TextField("Licenses URL", data.licensesUrl);
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUILayout.Space(10);
+
+            advancedFoldout = EditorGUILayout.Foldout(advancedFoldout, "Advanced", true);
+            if (advancedFoldout)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.HelpBox(
+                    "If unchecked, the assets in this package will always " +
+                    "be visible in the Project window and Object Picker." +
+                    "\n(Default: hidden)", MessageType.Info);
+                data.hideInEditor = EditorGUILayout.Toggle(new GUIContent("Hide In Editor"), data.hideInEditor);
+                EditorGUI.indentLevel--;
+            }
+        }
+
+        private void Footer()
+        {
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Revert", GUILayout.Width(100)))
             {
-                Load();
+                PreProcess();
             }
             if (GUILayout.Button("Apply", GUILayout.Width(100)))
             {
@@ -344,8 +348,6 @@ namespace UnityEssentials
             }
             EditorGUILayout.EndHorizontal();
         }
-
-        private static readonly System.Text.RegularExpressions.Regex ValidNameRegex = new(@"^[a-z0-9\-]+$");
 
         private void ParsePackageName(string fullName, out string org, out string disp)
         {
@@ -372,7 +374,7 @@ namespace UnityEssentials
             if (string.IsNullOrEmpty(input))
                 return "";
             input = input.ToLowerInvariant().Replace(" ", "-");
-            input = System.Text.RegularExpressions.Regex.Replace(input, @"[^a-z0-9\-]", "");
+            input = Regex.Replace(input, @"[^a-z0-9\-]", "");
             return input;
         }
 
