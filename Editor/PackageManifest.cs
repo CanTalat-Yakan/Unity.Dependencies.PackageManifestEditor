@@ -23,8 +23,8 @@ namespace UnityEssentials
         private bool _advancedFoldout = false;
         private bool _initialized = false;
 
-        public PackageManifest(string jsonPath) =>
-            _jsonPath = jsonPath;
+        public PackageManifest(string path) =>
+            _jsonPath = path;
 
         public void Save()
         {
