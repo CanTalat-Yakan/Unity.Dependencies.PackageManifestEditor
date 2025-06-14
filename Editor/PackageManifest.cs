@@ -1,5 +1,4 @@
 #if UNITY_EDITOR
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,6 +6,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
+using Newtonsoft.Json;
 
 namespace UnityEssentials
 {
