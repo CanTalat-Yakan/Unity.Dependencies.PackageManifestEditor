@@ -26,7 +26,7 @@ namespace UnityEssentials
         {
             string path = AssetDatabase.GetAssetPath(Selection.activeObject);
             var editor = new PackageManifest(path);
-            var window = new EditorWindowDrawer("Edit Package Manifest", new(700, 800), new(400, 500))
+            var window = new EditorWindowDrawer("Edit Package Manifest", new(400, 500), new(700, 800))
                 .SetInitialization(editor.Initialization)
                 .SetHeader(editor.Header, EditorWindowDrawer.GUISkin.HelpBox)
                 .SetBody(editor.Body, EditorWindowDrawer.GUISkin.BigMargin)
@@ -174,7 +174,6 @@ namespace UnityEssentials
                 }
                 EditorGUI.indentLevel--;
             }
-            GUILayout.FlexibleSpace();
         }
 
         private void Footer()
