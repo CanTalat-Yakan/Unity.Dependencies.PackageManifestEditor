@@ -9,7 +9,7 @@ namespace UnityEssentials
 {
     public partial class PackageManifest
     {
-        public EditorWindowDrawer window;
+        public EditorWindowDrawer Window;
         public Action Repaint;
         public Action Close;
 
@@ -28,9 +28,9 @@ namespace UnityEssentials
             var editor = new PackageManifest(path);
             var window = new EditorWindowDrawer("Edit Package Manifest", new(700, 800), new(400, 500))
                 .SetInitialization(editor.Initialization)
-                .SetHeader(editor.Header)
-                .SetBody(editor.Body)
-                .SetFooter(editor.Footer)
+                .SetHeader(editor.Header, EditorWindowDrawer.GUISkin.HelpBox)
+                .SetBody(editor.Body, EditorWindowDrawer.GUISkin.BigMargin)
+                .SetFooter(editor.Footer, EditorWindowDrawer.GUISkin.HelpBox)
                 .GetRepaintEvent(out editor.Repaint)
                 .GetCloseEvent(out editor.Close)
                 .ShowUtility();
@@ -51,12 +51,12 @@ namespace UnityEssentials
 
                 _jsonData.samples ??= new();
                 InitializeSamplesList();
-
-                _hasMinimalUnityVersion = !string.IsNullOrEmpty(_jsonData.unityRelease);
             }
             else _jsonData = new();
 
-            _initialized = true;
+            _initialized = true; 
+
+            GUI.FocusControl(null);
         }
 
         private void Header()
@@ -74,10 +74,6 @@ namespace UnityEssentials
                     Close();
                 return;
             }
-        }
-
-        private void Body()
-        {
             EditorGUILayout.LabelField("Information");
 
             EditorGUI.indentLevel++;
@@ -94,6 +90,10 @@ namespace UnityEssentials
                 _jsonData.name = ComposePackageName(organizationName, packageName);
                 _jsonData.version = EditorGUILayout.TextField("Version", _jsonData.version);
 
+                EditorGUILayout.Space();
+
+                EditorGUILayout.LabelField("Unity Version");
+
                 var unityVersionParts = (_jsonData.unity ?? "2022.1").Split('.');
                 int unityMajor = 0, unityMinor = 0;
                 int.TryParse(unityVersionParts[0], out unityMajor);
@@ -103,10 +103,7 @@ namespace UnityEssentials
                 unityMajor = EditorGUILayout.IntField("Major", unityMajor);
                 unityMinor = EditorGUILayout.IntField("Minor", unityMinor);
                 _jsonData.unity = $"{unityMajor}.{unityMinor}";
-
-                _hasMinimalUnityVersion = EditorGUILayout.Toggle("Minimal Unity Version", _hasMinimalUnityVersion);
-                if (_hasMinimalUnityVersion)
-                    _jsonData.unityRelease = EditorGUILayout.TextField("Release", _jsonData.unityRelease);
+                _jsonData.unityRelease = EditorGUILayout.TextField("Release", _jsonData.unityRelease);
             }
             EditorGUI.indentLevel--;
 
@@ -115,7 +112,10 @@ namespace UnityEssentials
             EditorGUILayout.LabelField("Description");
             GUIStyle wordWrapStyle = new GUIStyle(EditorStyles.textArea) { wordWrap = true };
             _jsonData.description = EditorGUILayout.TextArea(_jsonData.description, wordWrapStyle, GUILayout.MinHeight(80));
+        }
 
+        private void Body()
+        {
             EditorGUILayout.Space(10);
 
             if (_dependenciesList == null)
@@ -174,12 +174,17 @@ namespace UnityEssentials
                 }
                 EditorGUI.indentLevel--;
             }
+            GUILayout.FlexibleSpace();
         }
 
         private void Footer()
         {
-            EditorGUILayout.BeginHorizontal();
+            using (new GUILayout.HorizontalScope())
             {
+                string packageName = $"{_jsonData?.name ?? "N/A"} {_jsonData?.version ?? "N/A"}";
+                GUIStyle italicLabelStyle = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Italic };
+                GUILayout.Label(packageName, italicLabelStyle);
+
                 GUILayout.FlexibleSpace();
 
                 if (GUILayout.Button("Revert", GUILayout.Width(100)))
@@ -187,7 +192,6 @@ namespace UnityEssentials
                 if (GUILayout.Button("Apply", GUILayout.Width(100)))
                     Save();
             }
-            EditorGUILayout.EndHorizontal();
         }
     }
 }

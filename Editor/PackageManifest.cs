@@ -18,7 +18,6 @@ namespace UnityEssentials
         private List<Dependency> _dependencies = new();
         private ReorderableList _keywordsList;
         private ReorderableList _samplesList;
-        private bool _hasMinimalUnityVersion = false;
         private bool _authorFoldout = true;
         private bool _linksFoldout = true;
         private bool _advancedFoldout = false;
