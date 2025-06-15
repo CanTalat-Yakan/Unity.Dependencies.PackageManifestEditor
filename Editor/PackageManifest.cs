@@ -10,6 +10,53 @@ using Newtonsoft.Json;
 
 namespace UnityEssentials
 {
+    [Serializable]
+    public class PackageJson
+    {
+        public string name;
+        public string version;
+        public string displayName;
+        public string description;
+        public string unity;
+        public string unityRelease;
+        public Dictionary<string, string> dependencies = new();
+        public List<string> keywords = new();
+        public Author author = new Author();
+        public string documentationUrl;
+        public string changelogUrl;
+        public string licensesUrl;
+        public List<Sample> samples = new();
+        public bool hideInEditor = true;
+
+        public string ToJson()
+        {
+            var data = JsonConvert.SerializeObject(this, Formatting.Indented);
+            return data;
+        }
+    }
+
+    [Serializable]
+    public class Author
+    {
+        public string name;
+        public string email;
+        public string url;
+    }
+
+    [Serializable]
+    public class Dependency
+    {
+        public string name;
+        public string version;
+    }
+
+    [Serializable]
+    public class Sample
+    {
+        public string displayName;
+        public string description;
+        public string path;
+    }
     public partial class PackageManifest
     {
         private string _jsonPath;
@@ -26,7 +73,7 @@ namespace UnityEssentials
         public PackageManifest(string path) =>
             _jsonPath = path;
 
-        public void Save()
+        private void Save()
         {
             _jsonData.dependencies.Clear();
             foreach (var dependency in _dependencies)
@@ -38,7 +85,7 @@ namespace UnityEssentials
             Close();
         }
 
-        public void InitializeDependenciesList()
+        private void InitializeDependenciesList()
         {
             if (!_initialized || _jsonData == null || _jsonData.dependencies == null)
             {
@@ -87,7 +134,7 @@ namespace UnityEssentials
             };
         }
 
-        public void InitializeKeywordsList()
+        private void InitializeKeywordsList()
         {
             _keywordsList = new ReorderableList(_jsonData.keywords, typeof(string), true, true, true, true)
             {
@@ -107,7 +154,7 @@ namespace UnityEssentials
             };
         }
 
-        public void InitializeSamplesList()
+        private void InitializeSamplesList()
         {
             _samplesList = new ReorderableList(_jsonData.samples, typeof(Sample), true, true, true, true)
             {
@@ -187,54 +234,6 @@ namespace UnityEssentials
             input = input.ToLowerInvariant().Replace(" ", "-");
             input = Regex.Replace(input, @"[^a-z0-9\-]", "");
             return input;
-        }
-
-        [Serializable]
-        public class PackageJson
-        {
-            public string name;
-            public string version;
-            public string displayName;
-            public string description;
-            public string unity;
-            public string unityRelease;
-            public Dictionary<string, string> dependencies = new();
-            public List<string> keywords = new();
-            public Author author = new Author();
-            public string documentationUrl;
-            public string changelogUrl;
-            public string licensesUrl;
-            public List<Sample> samples = new();
-            public bool hideInEditor = true;
-
-            public string ToJson()
-            {
-                var data = JsonConvert.SerializeObject(this, Formatting.Indented);
-                return data;
-            }
-        }
-
-        [Serializable]
-        public class Author
-        {
-            public string name;
-            public string email;
-            public string url;
-        }
-
-        [Serializable]
-        public class Dependency
-        {
-            public string name;
-            public string version;
-        }
-
-        [Serializable]
-        public class Sample
-        {
-            public string displayName;
-            public string description;
-            public string path;
         }
     }
 }

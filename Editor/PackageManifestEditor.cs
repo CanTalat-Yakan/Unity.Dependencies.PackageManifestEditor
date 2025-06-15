@@ -136,7 +136,6 @@ namespace UnityEssentials
 
             EditorGUILayout.Space(10);
 
-            // Author fields
             _authorFoldout = EditorGUILayout.Foldout(_authorFoldout, "Author", true);
             if (_authorFoldout)
             {
@@ -148,7 +147,6 @@ namespace UnityEssentials
             }
             EditorGUILayout.Space(10);
 
-            // Links foldout
             _linksFoldout = EditorGUILayout.Foldout(_linksFoldout, "Links", true);
             if (_linksFoldout)
             {
@@ -189,7 +187,7 @@ namespace UnityEssentials
                 if (GUILayout.Button("Revert", GUILayout.Width(100)))
                     Initialization();
                 if (GUILayout.Button("Apply", GUILayout.Width(100)))
-                    Save();
+                    Save(_jsonData);
             }
         }
     }
