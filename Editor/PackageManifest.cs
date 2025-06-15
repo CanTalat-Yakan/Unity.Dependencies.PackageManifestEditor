@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 namespace UnityEssentials
 {
     [Serializable]
-    public class PackageJson
+    public class PackageManifestData
     {
         public string name;
         public string version;
@@ -33,36 +33,37 @@ namespace UnityEssentials
             var data = JsonConvert.SerializeObject(this, Formatting.Indented);
             return data;
         }
+
+        [Serializable]
+        public class Author
+        {
+            public string name;
+            public string email;
+            public string url;
+        }
+
+        [Serializable]
+        public class Dependency
+        {
+            public string name;
+            public string version;
+        }
+
+        [Serializable]
+        public class Sample
+        {
+            public string displayName;
+            public string description;
+            public string path;
+        }
     }
 
-    [Serializable]
-    public class Author
-    {
-        public string name;
-        public string email;
-        public string url;
-    }
-
-    [Serializable]
-    public class Dependency
-    {
-        public string name;
-        public string version;
-    }
-
-    [Serializable]
-    public class Sample
-    {
-        public string displayName;
-        public string description;
-        public string path;
-    }
     public partial class PackageManifest
     {
         private string _jsonPath;
-        private PackageJson _jsonData;
+        private PackageManifestData _jsonData;
         private ReorderableList _dependenciesList;
-        private List<Dependency> _dependencies = new();
+        private List<PackageManifestData.Dependency> _dependencies = new();
         private ReorderableList _keywordsList;
         private ReorderableList _samplesList;
         private bool _authorFoldout = true;
@@ -91,10 +92,10 @@ namespace UnityEssentials
             {
                 _dependencies.Clear();
                 foreach (var kvp in _jsonData.dependencies)
-                    _dependencies.Add(new Dependency { name = kvp.Key, version = kvp.Value });
+                    _dependencies.Add(new PackageManifestData.Dependency { name = kvp.Key, version = kvp.Value });
             }
 
-            _dependenciesList = new ReorderableList(_dependencies, typeof(Dependency), true, true, true, true)
+            _dependenciesList = new ReorderableList(_dependencies, typeof(PackageManifestData.Dependency), true, true, true, true)
             {
                 drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Dependencies"),
                 drawElementCallback = (rect, index, isActive, isFocused) =>
@@ -126,7 +127,7 @@ namespace UnityEssentials
 
             _dependenciesList.onAddCallback = list =>
             {
-                _dependencies.Add(new Dependency
+                _dependencies.Add(new PackageManifestData.Dependency
                 {
                     name = "com.example.new-package",
                     version = "1.0.0"
@@ -156,7 +157,7 @@ namespace UnityEssentials
 
         private void InitializeSamplesList()
         {
-            _samplesList = new ReorderableList(_jsonData.samples, typeof(Sample), true, true, true, true)
+            _samplesList = new ReorderableList(_jsonData.samples, typeof(PackageManifestData.Sample), true, true, true, true)
             {
                 drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Samples"),
                 drawElementCallback = (rect, index, isActive, isFocused) =>
@@ -195,7 +196,7 @@ namespace UnityEssentials
 
             _samplesList.onAddCallback = list =>
             {
-                _jsonData.samples.Add(new Sample
+                _jsonData.samples.Add(new PackageManifestData.Sample
                 {
                     displayName = string.Empty,
                     description = string.Empty,

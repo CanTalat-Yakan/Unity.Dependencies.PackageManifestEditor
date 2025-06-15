@@ -41,7 +41,7 @@ namespace UnityEssentials
             if (!string.IsNullOrEmpty(_jsonPath) && File.Exists(_jsonPath))
             {
                 string json = File.ReadAllText(_jsonPath);
-                _jsonData = JsonConvert.DeserializeObject<PackageJson>(json) ?? new PackageJson();
+                _jsonData = JsonConvert.DeserializeObject<PackageManifestData>(json) ?? new PackageManifestData();
 
                 _jsonData.dependencies ??= new();
                 InitializeDependenciesList();
@@ -187,7 +187,7 @@ namespace UnityEssentials
                 if (GUILayout.Button("Revert", GUILayout.Width(100)))
                     Initialization();
                 if (GUILayout.Button("Apply", GUILayout.Width(100)))
-                    Save(_jsonData);
+                    Save();
             }
         }
     }
