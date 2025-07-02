@@ -180,7 +180,8 @@ namespace UnityEssentials
             {
                 string packageName = $"{_jsonData?.name ?? "N/A"} {_jsonData?.version ?? "N/A"}";
                 GUIStyle italicLabelStyle = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Italic };
-                GUILayout.Label(packageName, italicLabelStyle);
+                if (GUILayout.Button(packageName, italicLabelStyle))
+                    EditorGUIUtility.systemCopyBuffer = _jsonData?.name;
 
                 GUILayout.FlexibleSpace();
 
