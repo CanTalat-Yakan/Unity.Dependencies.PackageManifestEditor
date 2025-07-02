@@ -7,8 +7,8 @@
   "unityRelease": "",
   "dependencies": {
     "com.unityessentials.core": "1.0.0",
-    "com.unity.nuget.newtonsoft-json": "3.2.1",
-    "com.unityessentials.editorwindowdrawer": "1.0.0"
+    "com.unityessentials.editorwindowdrawer": "1.0.0",
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
   },
   "keywords": [],
   "author": {
