@@ -179,8 +179,9 @@ namespace UnityEssentials
             using (new GUILayout.HorizontalScope())
             {
                 string packageName = $"{_jsonData?.name ?? "N/A"} {_jsonData?.version ?? "N/A"}";
-                GUIStyle italicLabelStyle = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Italic };
-                if (GUILayout.Button(packageName, italicLabelStyle))
+                GUIStyle packageNameLabelStyle = new GUIStyle(GUI.skin.label) { fontStyle = FontStyle.Italic };
+                packageNameLabelStyle.active.textColor = packageNameLabelStyle.normal.textColor * 0.85f;
+                if (GUILayout.Button(packageName, packageNameLabelStyle))
                     EditorGUIUtility.systemCopyBuffer = _jsonData?.name;
 
                 GUILayout.FlexibleSpace();
