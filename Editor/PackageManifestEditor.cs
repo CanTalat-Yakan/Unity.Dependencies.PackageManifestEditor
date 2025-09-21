@@ -26,14 +26,15 @@ namespace UnityEssentials
         {
             string path = AssetDatabase.GetAssetPath(Selection.activeObject);
             var editor = new PackageManifest(path);
-            var window = new EditorWindowDrawer("Edit Package Manifest", new(400, 500), new(700, 800))
+            var window = EditorWindowDrawer
+                .CreateInstance("Edit Package Manifest", new(400, 500), new(700, 800))
                 .SetInitialization(editor.Initialization)
                 .SetHeader(editor.Header, EditorWindowStyle.HelpBox)
                 .SetBody(editor.Body, EditorWindowStyle.BigMargin)
                 .SetFooter(editor.Footer, EditorWindowStyle.HelpBox)
                 .GetRepaintEvent(out editor.Repaint)
                 .GetCloseEvent(out editor.Close)
-                .ShowUtility();
+                .ShowAsUtility();
         }
 
         private void Initialization()
