@@ -1,13 +1,11 @@
 {
   "name": "com.unityessentials.packagemanifesteditor",
   "version": "1.0.0",
-  "displayName": "Unity Core Dependencies PackageManifestEditor",
+  "displayName": "Unity Dependencies PackageManifestEditor",
   "description": "This is a part of the UnityEssentials Ecosystem",
   "unity": "6000.0",
   "unityRelease": "",
-  "dependencies": {
-    "com.unity.nuget.newtonsoft-json": "3.2.1"
-  },
+  "dependencies": {},
   "keywords": [],
   "author": {
     "name": "Unity Essentials",
