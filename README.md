@@ -28,9 +28,9 @@ Install the Unity Essentials entry package via Unity's Package Manager, then ins
 
 > Quick overview: Edit `package.json` files inside Unity with a focused editor window: name/display name, version, Unity version, dependencies, keywords, samples, author, links, and advanced flags.
 
-A small editor utility that opens a purpose-built inspector for `package.json`. It lets you edit the most common fields with sane defaults, re-orderable lists for dependencies/keywords/samples, and immediate save/revert actions.
+A small editor utility with a purpose‑built inspector for `package.json`. Common fields are exposed with sensible defaults, dependencies/keywords/samples are managed with re‑orderable lists, and changes can be saved or reverted immediately.
 
-![screenshot](Documentation/{A63444C4-8CF5-4950-A1FA-3418FD6BBB6D}.png)
+![screenshot](Documentation/Screenshot.png)
 
 ## Features
 - Context-aware: enabled only when a `package.json` is selected in the Project window
