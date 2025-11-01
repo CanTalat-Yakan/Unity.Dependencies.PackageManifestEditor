@@ -64,7 +64,7 @@ Tip: If the tool window doesn’t open, make sure you have an actual `package.js
 4) Click Apply to write the updated JSON to disk and refresh the Asset Database
 5) Click Revert to reload from disk and discard unsaved changes
 
-## Menu Commands
+### Menu Commands
 - Assets → Edit Package Manifest
   - Opens the editor window for the currently selected `package.json`
   - Enabled only when the active selection is a file named `package.json`
